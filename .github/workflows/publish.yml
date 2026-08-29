@@ -32,8 +32,8 @@ jobs:
             sed -i "1s/^/{\n  \"version\": \"${TAG}\",\n/" package.json
           fi
 
-      - name: Build project
-        run: npm run build
+      - name: Run tests
+        run: npm run test
 
       - name: Publish package to npm
         env:
