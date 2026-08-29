@@ -1,0 +1,43 @@
+{
+  "name": "@dockcodes/dock-thor",
+  "version": "1.0.0",
+  "description": "Node.js client for DockTHOR error and performance monitoring",
+  "license": "MIT",
+  "author": "Jacek Sultan <j.sultan@dock.codes>",
+  "homepage": "https://dock.codes",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dockcodes/dock-thor-node.git"
+  },
+  "keywords": [
+    "error-monitoring",
+    "crash-reporting",
+    "performance-monitoring",
+    "express",
+    "fastify",
+    "edge",
+    "logging"
+  ],
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./edge": "./src/edge.js",
+    "./browser": "./src/browser.js",
+    "./express": "./src/express.js",
+    "./fastify": "./src/fastify.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
