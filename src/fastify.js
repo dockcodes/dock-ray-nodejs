@@ -6,7 +6,7 @@ import { describeRequest, routeName } from './http.js';
  * `onResponse` fires after the reply has been flushed to the client, so the
  * request to the panel never delays the response.
  */
-export function thorPlugin(fastify, options, done) {
+export function rayPlugin(fastify, options, done) {
     const { client, ignorePaths = ['/health', '/metrics'], shouldReport = defaultShouldReport } = options;
 
     if (!client?.enabled) {
@@ -15,18 +15,18 @@ export function thorPlugin(fastify, options, done) {
         return;
     }
 
-    fastify.decorateRequest('thor', null);
+    fastify.decorateRequest('ray', null);
 
     fastify.addHook('onRequest', (request, reply, next) => {
-        request.thor = { startTimestamp: Date.now() / 1000, request: describeRequest(request) };
+        request.ray = { startTimestamp: Date.now() / 1000, request: describeRequest(request) };
         next();
     });
 
     fastify.addHook('onError', (request, reply, error, next) => {
         if (shouldReport(error)) {
             client.report(client.captureException(error, {
-                user: request.thor?.request?.user,
-                request: request.thor?.request?.http,
+                user: request.ray?.request?.user,
+                request: request.ray?.request?.http,
             }));
         }
 
@@ -34,7 +34,7 @@ export function thorPlugin(fastify, options, done) {
     });
 
     fastify.addHook('onResponse', (request, reply, next) => {
-        const context = request.thor;
+        const context = request.ray;
         const path = request.url ?? '/';
 
         if (context && !ignorePaths.some((ignored) => path.startsWith(ignored))) {
@@ -56,7 +56,7 @@ export function thorPlugin(fastify, options, done) {
     done();
 }
 
-thorPlugin[Symbol.for('skip-override')] = true;
+rayPlugin[Symbol.for('skip-override')] = true;
 
 function defaultShouldReport(error) {
     const status = error?.status ?? error?.statusCode ?? 500;

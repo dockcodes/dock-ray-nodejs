@@ -1,7 +1,7 @@
 import { randomHex } from './random.js';
 import { framesFromError } from './stacktrace.js';
 
-export const SDK_NAME = 'thor.javascript.node';
+export const SDK_NAME = 'ray.javascript.node';
 
 export const SDK_VERSION = '1.0.0';
 

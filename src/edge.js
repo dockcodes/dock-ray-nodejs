@@ -1,7 +1,7 @@
-import { ThorClient } from './client.js';
+import { RayClient } from './client.js';
 import { edgeRuntime } from './runtime/edge.js';
 
-export { ThorClient };
+export { RayClient };
 export { AuthData, DEFAULT_URL } from './auth.js';
 export { SDK_NAME, SDK_VERSION, exceptionEvent, messageEvent, transactionEvent } from './event.js';
 export { describeRequest, routeName } from './http.js';
@@ -16,7 +16,7 @@ export { edgeRuntime } from './runtime/edge.js';
  * Importing this entry point keeps `node:` built-ins out of the bundle, which
  * an edge build refuses to resolve.
  */
-export class DockThorClient extends ThorClient {
+export class DockRayClient extends RayClient {
     constructor(options = {}) {
         super({ runtime: edgeRuntime, ...options });
     }

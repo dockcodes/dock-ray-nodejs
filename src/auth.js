@@ -1,4 +1,4 @@
-export const DEFAULT_URL = 'https://thor.dock.codes';
+export const DEFAULT_URL = 'https://dockray.io';
 
 const API_PATH = '/api/v1';
 

@@ -1,13 +1,13 @@
 {
-  "name": "@dockcodes/dock-thor",
+  "name": "@dockcodes/dock-ray",
   "version": "1.0.0",
-  "description": "Node.js client for DockTHOR error and performance monitoring",
+  "description": "Node.js client for DockRay error and performance monitoring",
   "license": "MIT",
   "author": "Jacek Sultan <j.sultan@dock.codes>",
-  "homepage": "https://dock.codes",
+  "homepage": "https://dockray.io",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dockcodes/dock-thor-node.git"
+    "url": "git+https://github.com/dockcodes/dock-ray-node.git"
   },
   "keywords": [
     "error-monitoring",

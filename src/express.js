@@ -7,8 +7,8 @@ import { describeRequest, routeName } from './http.js';
  * panel starts only after the last byte has gone to the client. A slow panel
  * costs the visitor nothing.
  */
-export function thorRequestHandler(client, { ignorePaths = ['/health', '/metrics'] } = {}) {
-    return function dockThorRequestHandler(req, res, next) {
+export function rayRequestHandler(client, { ignorePaths = ['/health', '/metrics'] } = {}) {
+    return function dockRayRequestHandler(req, res, next) {
         if (!client.enabled) {
             next();
 
@@ -18,7 +18,7 @@ export function thorRequestHandler(client, { ignorePaths = ['/health', '/metrics
         const startTimestamp = Date.now() / 1000;
         const described = describeRequest(req);
 
-        req.thor = { client, request: described };
+        req.ray = { client, request: described };
 
         if (ignorePaths.some((path) => (req.path ?? req.url ?? '').startsWith(path))) {
             next();
@@ -47,10 +47,10 @@ export function thorRequestHandler(client, { ignorePaths = ['/health', '/metrics
  * Express error handler. Register it after the routes and before any handler
  * that renders the error page; it reports and passes the error along.
  */
-export function thorErrorHandler(client, { shouldReport = defaultShouldReport } = {}) {
-    return function dockThorErrorHandler(error, req, res, next) {
+export function rayErrorHandler(client, { shouldReport = defaultShouldReport } = {}) {
+    return function dockRayErrorHandler(error, req, res, next) {
         if (client.enabled && shouldReport(error)) {
-            const described = req.thor?.request ?? {};
+            const described = req.ray?.request ?? {};
 
             res.on('finish', () => {
                 client.report(client.captureException(error, {

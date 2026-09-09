@@ -5,7 +5,7 @@
  * would have to be readable in page source. So the page reports to the
  * application, and the application forwards with its own key:
  *
- *     browser  ->  your server route  ->  DockTHOR
+ *     browser  ->  your server route  ->  DockRay
  *     (no key)                        (project key)
  *
  * `startCollector()` runs in the page; `browserEvent()` runs on the server and
@@ -121,7 +121,7 @@ export function startCollector(config) {
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
 
-    window.DockThor = {
+    window.DockRay = {
         captureException: (error) => report(error?.name ?? 'Error', error?.message, error, 'manual'),
         captureMessage: (message) => report('Message', message, null, 'manual'),
     };
@@ -129,7 +129,7 @@ export function startCollector(config) {
     return () => {
         window.removeEventListener('error', onError);
         window.removeEventListener('unhandledrejection', onRejection);
-        delete window.DockThor;
+        delete window.DockRay;
     };
 }
 
@@ -172,7 +172,7 @@ function send(settings, body) {
     const headers = { 'Content-Type': 'application/json' };
 
     if (settings.token) {
-        headers['X-DockThor-Token'] = settings.token;
+        headers['X-DockRay-Token'] = settings.token;
     }
 
     try {

@@ -24,7 +24,7 @@ export class HttpTransport {
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.auth.privateKey}`,
-            'User-Agent': `thor.javascript.node/${SDK_VERSION}`,
+            'User-Agent': `ray.javascript.node/${SDK_VERSION}`,
         };
 
         let body = new TextEncoder().encode(JSON.stringify(event));
@@ -46,7 +46,7 @@ export class HttpTransport {
             });
 
             if (!response.ok) {
-                this.logger.warn?.(`DockTHOR rejected the event with HTTP ${response.status}`);
+                this.logger.warn?.(`DockRay rejected the event with HTTP ${response.status}`);
 
                 return false;
             }
@@ -56,7 +56,7 @@ export class HttpTransport {
 
             return payload.success === true;
         } catch (error) {
-            this.logger.warn?.(`DockTHOR could not be reached: ${error.message}`);
+            this.logger.warn?.(`DockRay could not be reached: ${error.message}`);
 
             return false;
         } finally {

@@ -7,13 +7,13 @@ import { HttpTransport } from './transport.js';
 const MAX_PENDING = 50;
 
 /**
- * Sends errors, messages and transactions to a DockTHOR project.
+ * Sends errors, messages and transactions to a DockRay project.
  *
  * Without a token and a private key the client is inert: every call is a
  * no-op that resolves to false. An application can wire it up unconditionally
  * and leave the credentials out of development.
  */
-export class ThorClient {
+export class RayClient {
     constructor({
         token = '',
         privateKey = '',
@@ -150,7 +150,7 @@ export class ThorClient {
         }
 
         const tracked = Promise.resolve(promise)
-            .catch((error) => this.logger.warn?.(`DockTHOR failed to report: ${error.message}`))
+            .catch((error) => this.logger.warn?.(`DockRay failed to report: ${error.message}`))
             .finally(() => this.pending.delete(tracked));
 
         this.pending.add(tracked);

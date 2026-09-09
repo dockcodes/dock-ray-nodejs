@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import test from 'node:test';
 
-import { DockThorClient } from '../src/index.js';
-import { DockThorClient as EdgeClient } from '../src/edge.js';
+import { DockRayClient } from '../src/index.js';
+import { DockRayClient as EdgeClient } from '../src/edge.js';
 import { browserEvent } from '../src/browser.js';
 
 async function withCollector(run) {
@@ -62,7 +62,7 @@ test('the edge client reports without a filesystem or zlib', async () => {
 
 test('the node client still names the machine and compresses', async () => {
     await withCollector(async (url, received) => {
-        const client = new DockThorClient({ token: 'tok', privateKey: 'key', url });
+        const client = new DockRayClient({ token: 'tok', privateKey: 'key', url });
 
         await client.captureMessage('y'.repeat(4000));
 
@@ -74,7 +74,7 @@ test('the node client still names the machine and compresses', async () => {
 
 test('a browser report becomes an event with a server-side envelope', async () => {
     await withCollector(async (url, received) => {
-        const client = new DockThorClient({
+        const client = new DockRayClient({
             token: 'tok', privateKey: 'key', url, environment: 'production', release: '2.0.0',
         });
 
