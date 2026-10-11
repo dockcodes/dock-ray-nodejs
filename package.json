@@ -1,6 +1,6 @@
 {
   "name": "@dockcodes/dock-ray",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Node.js client for DockRay error and performance monitoring",
   "license": "MIT",
   "author": "Jacek Sultan <j.sultan@dock.codes>",
@@ -25,12 +25,15 @@
     "./edge": "./src/edge.js",
     "./browser": "./src/browser.js",
     "./express": "./src/express.js",
-    "./fastify": "./src/fastify.js"
+    "./fastify": "./src/fastify.js",
+    "./inventory": "./src/inventory.js"
   },
   "files": [
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "bin",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=18"
@@ -38,6 +41,11 @@
   "scripts": {
     "test": "node --test test/*.test.js"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "proper-lockfile": "^4.1.2"
+  },
+  "devDependencies": {},
+  "bin": {
+    "dockray-inventory": "./bin/dockray-inventory.js"
+  }
 }

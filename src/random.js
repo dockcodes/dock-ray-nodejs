@@ -1,6 +1,6 @@
 /**
- * Hex identifiers from Web Crypto, which Node 18+, Deno, Bun and every edge
- * runtime expose as a global. `node:crypto` would tie the package to Node and
+ * Hex identifiers from Web Crypto for browser and edge runtimes. The full
+ * Node runtime provides its own randomBytes implementation. `node:crypto` would tie the package to Node and
  * break the moment it is bundled for a middleware or an edge route.
  */
 export function randomHex(bytes) {

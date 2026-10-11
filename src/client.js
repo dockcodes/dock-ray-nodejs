@@ -100,7 +100,7 @@ export class RayClient {
      *
      * The payload is untrusted: `browserEvent()` keeps only fields it
      * recognises, caps every string and returns null for anything it cannot
-     * make an event of. The envelope — id, timestamp, environment, release —
+     * make an event of. The envelope - id, timestamp, environment, release -
      * is filled in here, on the server, and never taken from the browser.
      */
     async captureBrowserReport(payload, context = {}) {

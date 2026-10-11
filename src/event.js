@@ -3,10 +3,10 @@ import { framesFromError } from './stacktrace.js';
 
 export const SDK_NAME = 'ray.javascript.node';
 
-export const SDK_VERSION = '1.0.0';
+export const SDK_VERSION = '1.1.0';
 
-export function eventId() {
-    return randomHex(16);
+export function eventId(runtime) {
+    return runtime?.randomHex ? runtime.randomHex(16) : randomHex(16);
 }
 
 function contexts(runtime) {
@@ -27,7 +27,7 @@ export function baseEvent({ level, message, environment, release, user, request,
     const host = runtime.hostname();
 
     const event = {
-        event_id: eventId(),
+        event_id: eventId(runtime),
         timestamp: new Date().toISOString(),
         platform: 'node',
         level,
@@ -93,8 +93,8 @@ export function transactionEvent({ name, url, method, statusCode, startTimestamp
     event.timestamp = endTimestamp;
     event.tags['http.status_code'] = String(statusCode);
     event.contexts.trace = {
-        trace_id: randomHex(16),
-        span_id: randomHex(8),
+        trace_id: eventId(options.runtime),
+        span_id: options.runtime?.randomHex ? options.runtime.randomHex(8) : randomHex(8),
         op: 'http.server',
         data: { url, method: method.toUpperCase() },
     };

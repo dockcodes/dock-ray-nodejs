@@ -6,7 +6,7 @@ messages and HTTP transactions from server-side Node applications.
 **This is a server package.** There is no browser build, and there will not be
 one: authenticating from a browser means shipping the project private key in
 page source, where anyone can read it and report into your project. Browser
-errors travel through your own server instead — the page reports to a route in
+errors travel through your own server instead - the page reports to a route in
 your app, and the app forwards with its key. `captureBrowserReport()` is the
 server half of that; the CMS plugins, the Next.js package and the Nuxt module
 each ship the route and the collector.
@@ -65,16 +65,16 @@ unconditionally and leave the credentials out of development.
 
 | Option | Default | Meaning |
 |---|---|---|
-| `token`, `privateKey` | — | project credentials; both required to send anything |
+| `token`, `privateKey` | - | project credentials; both required to send anything |
 | `environment` | `NODE_ENV` or `production` | environment column in the panel |
-| `release` | — | deployed version |
+| `release` | - | deployed version |
 | `sampleRate` | `1` | share of error events sent |
 | `tracesSampleRate` | `0` | share of transactions sent; `0` disables tracing |
 | `sendDefaultPii` | `false` | keep IP address and user agent on events |
 | `appRoot` | `process.cwd()` | frames below it are marked as application code |
 | `contextLines` | `3` | source lines around each application frame |
 | `timeout` | `5000` | milliseconds before a send is abandoned |
-| `beforeSend` | — | receives the event, returns it, a changed copy, or `null` to drop |
+| `beforeSend` | - | receives the event, returns it, a changed copy, or `null` to drop |
 
 ## Reporting after the response
 
@@ -103,7 +103,7 @@ app.use(rayErrorHandler(ray));        // after the routes
 ```
 
 `rayRequestHandler` opens a transaction and reports it on the response's
-`finish` event. `rayErrorHandler` reports the error and passes it on — it
+`finish` event. `rayErrorHandler` reports the error and passes it on - it
 never swallows one, so your own error page still renders.
 
 ### Fastify
@@ -141,7 +141,7 @@ app.post('/api/ray/browser', async (req, res) => {
 The payload is untrusted: fields it does not recognise are dropped, every
 string is capped at 1 KB, the stack is capped at 50 frames, and anything it
 cannot make an event of returns `false` rather than a half-filled report. The
-envelope — id, timestamp, environment, release — is filled in here, on the
+envelope - id, timestamp, environment, release - is filled in here, on the
 server, so a browser cannot choose which environment its errors land in.
 
 The page-side collector is `@dockcodes/dock-ray/browser`:
@@ -152,7 +152,7 @@ import { startCollector } from '@dockcodes/dock-ray/browser';
 const stop = startCollector({ endpoint: '/api/ray/browser', token: csrfToken });
 ```
 
-Guard your route yourself — a CSRF token, a body size limit and a per-address
+Guard your route yourself - a CSRF token, a body size limit and a per-address
 rate limit are what the shipped integrations use.
 
 ## Crashes nobody caught
@@ -164,7 +164,7 @@ fatal error:
 ray.installGlobalHandlers();
 ```
 
-`uncaughtException` is reported and then the process exits — a process that
+`uncaughtException` is reported and then the process exits - a process that
 survives an uncaught exception is in an unknown state. Pass
 `{ exitOnUncaught: false }` if something else already handles that.
 
@@ -196,3 +196,111 @@ npm test
 ## License
 
 MIT.
+
+## Package inventory and vulnerability alerts (1.1+)
+
+Inventory is **disabled by default**, available only in the full Node client.
+For a long-running Node application, enable it alongside the existing project
+credentials:
+
+```js
+import { DockRayClient } from '@dockcodes/dock-ray';
+
+const ray = new DockRayClient({
+    token: process.env.RAY_TOKEN,
+    privateKey: process.env.RAY_PRIVATE_KEY,
+    inventoryEnabled: true,
+    inventorySiteUrl: 'https://app.example.com',
+    // Optional: do not share internal package names.
+    inventoryExcludePackages: ['@company/*'],
+    // Optional: persistent, private storage outside the public document root.
+    inventoryStateDirectory: '/var/lib/my-app/dockray-inventory',
+});
+```
+
+The client reports once in the background after startup and checks hourly.
+Changed packages are sent on the next check; unchanged inventories are sent
+approximately every 12 hours. The timer is unref'ed and does not keep a process
+alive. HTTP request handlers do not collect or send inventory. On a deployment,
+you can send a manual report and read its sanitized result:
+
+```js
+const result = await ray.reportInventory({ force: true });
+// { status: 'sent', components: 42, vulnerable: 1 }
+```
+
+`await ray.close()` stops the inventory timer and waits for pending deliveries.
+Run one schedule per application, or use the shared private state directory
+on the same machine. Separate machines need scheduler coordination.
+
+### Cron alternative
+
+For short-lived processes, serverless jobs or an external scheduler, keep the
+client's automatic inventory disabled and run the installed command hourly.
+Supply variables through a secure process/cron environment:
+
+```dotenv
+RAY_INVENTORY=true
+RAY_INVENTORY_SITE_URL=https://app.example.com
+RAY_TOKEN=your-project-token
+RAY_PRIVATE_KEY=your-project-private-key
+# Optional comma-separated package name/glob exclusions
+RAY_INVENTORY_EXCLUDE_PACKAGES=@company/*
+# Optional non-default project and private state directories
+RAY_INVENTORY_PROJECT_DIR=/srv/my-app
+RAY_INVENTORY_STATE_DIR=/var/lib/my-app/dockray-inventory
+```
+
+From the application root:
+
+```sh
+./node_modules/.bin/dockray-inventory --force
+# Then run this hourly in cron:
+./node_modules/.bin/dockray-inventory
+```
+
+The command does not load `.env` automatically. Keep secrets on the server,
+never in frontend code, command arguments or a public crontab. Both the client
+and command use the existing DockRay project token and private key. The site
+URL must match the project environment and is never inferred from a Host header.
+
+A custom server-side scheduler can import `InventoryReporter` from
+`@dockcodes/dock-ray/inventory`, pass `enabled: true`, `siteUrl`, project credentials
+(`token`, `privateKey`), optional `projectDirectory`, `stateDirectory` and
+`excludePackages`, then call `await reporter.report({ force: false })`.
+It does not start a timer unless `reporter.start()` is called.
+
+### Coverage and privacy
+
+This first collector supports **npm lockfile v2/v3 and installed node_modules**.
+It reads only root `package.json`, `npm-shrinkwrap.json` (preferred) or
+`package-lock.json`, and installed package metadata. Install dependencies with
+npm before reporting and retain the lockfile in deployment. It covers direct
+and transitive production packages, scoped names and npm aliases. Distinct
+installed versions of one package are checked separately; identical name/version
+pairs are deduplicated. Development packages, the root application, local links,
+absent optional packages and configured exclusions are not reported.
+
+Yarn, pnpm, PnP, workspaces, lockfile v1 and bundled builds without npm installation
+metadata are not covered. Missing, mismatched, malformed or oversized metadata
+fails without sending an empty or partial snapshot. There is a limit of 1000
+unique name/version pairs. Excluded packages cannot be checked for vulnerabilities.
+
+Only package names/versions, the configured site URL and Node/SDK versions leave
+the application. The collector does not execute npm, installation scripts or
+package code, and does not read source files, `.env`, repository URLs or user data.
+DockRay matches the npm names against its npm advisories and displays the findings
+in the project's Vulnerabilities tab, with the existing project notification
+recipients and channels. This covers known package vulnerabilities, not a scan
+of the Node runtime, operating system or custom source code.
+
+Delivery requires HTTPS with verified TLS and sends the key only as a Bearer
+header. Redirects are refused, HTTP requests have an 8-second total timeout, and
+request/response sizes are bounded. Errors expose only generic diagnostics and
+sanitized statuses. Manual sends respect retry backoff and server rate limits.
+Local state contains hashes and timings only, protected by a cross-process
+filesystem lock, a 0700 directory and 0600 files. The default is a private system
+temporary directory; configure persistent private storage for containers.
+Edge and browser entry points do not include inventory support.
+
+Lock metadata follows [npm's documented package-lock format](https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json/).

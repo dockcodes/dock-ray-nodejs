@@ -9,7 +9,7 @@ export { browserEvent, collectorConfig, defaultIgnoreList, startCollector } from
 export { edgeRuntime } from './runtime/edge.js';
 
 /**
- * The client for runtimes without a filesystem, a hostname or zlib — Vercel
+ * The client for runtimes without a filesystem, a hostname or zlib - Vercel
  * Edge, Cloudflare Workers, Next.js middleware. Reporting works the same;
  * events simply carry no source context and travel uncompressed.
  *

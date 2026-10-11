@@ -1,7 +1,7 @@
 /**
  * Browser errors, both ends of the trip.
  *
- * A browser cannot authenticate against the panel — the project private key
+ * A browser cannot authenticate against the panel - the project private key
  * would have to be readable in page source. So the page reports to the
  * application, and the application forwards with its own key:
  *

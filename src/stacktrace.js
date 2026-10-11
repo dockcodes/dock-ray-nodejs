@@ -5,7 +5,7 @@ const CONTEXT_LINES = 3;
 const sourceCache = new Map();
 
 /**
- * Frames from an Error, innermost call last — the order the panel renders.
+ * Frames from an Error, innermost call last - the order the panel renders.
  *
  * Source context is read for application frames only: a stack that runs
  * through node_modules is dozens of frames deep, and reading all of them would

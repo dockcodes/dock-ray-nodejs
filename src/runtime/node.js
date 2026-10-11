@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { gzipSync } from 'node:zlib';
+import { randomBytes } from 'node:crypto';
 
 /**
  * The parts of reporting that only a full Node process can do: naming the
@@ -8,6 +9,7 @@ import { gzipSync } from 'node:zlib';
  */
 export const nodeRuntime = {
     name: 'node',
+    randomHex: (bytes) => randomBytes(bytes).toString('hex'),
     hostname,
     readSource: (path) => readFileSync(path, 'utf8'),
     gzip: (buffer) => gzipSync(buffer),
