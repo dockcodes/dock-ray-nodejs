@@ -3,7 +3,7 @@ import { framesFromError } from './stacktrace.js';
 
 export const SDK_NAME = 'ray.javascript.node';
 
-export const SDK_VERSION = '1.1.0';
+export const SDK_VERSION = '1.1.1';
 
 export function eventId(runtime) {
     return runtime?.randomHex ? runtime.randomHex(16) : randomHex(16);

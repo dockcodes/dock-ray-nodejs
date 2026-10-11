@@ -33,7 +33,7 @@ async function fixture(t) {
 
 function options(root, extra = {}) {
     return { enabled: true, token: 'project-token', privateKey: 'top-secret-key',
-        siteUrl: 'https://app.example.com', projectDirectory: root, stateDirectory: join(root, 'state'),
+        environment: 'production', projectDirectory: root, stateDirectory: join(root, 'state'),
         excludePackages: ['company-*'], logger: { warn() {} }, ...extra };
 }
 
@@ -108,7 +108,7 @@ test('transport uses HTTPS, bearer header, escaped token and refuses redirects',
     assert.deepEqual(Object.keys(JSON.parse(state)).sort(), ['hash', 'nextAt', 'retryAt']);
 });
 
-test('changed inventory sends on next invocation and site environments keep separate state', async (t) => {
+test('changed inventory sends on next invocation and explicit environments keep separate state', async (t) => {
     const root = await fixture(t);
     const request = t.mock.method(globalThis, 'fetch', async () => ok());
     const reporter = new InventoryReporter(options(root));
@@ -119,7 +119,9 @@ test('changed inventory sends on next invocation and site environments keep sepa
     await writeFile(file, JSON.stringify(lock));
     await writeFile(join(root, 'node_modules/express/package.json'), '{"name":"express","version":"4.18.1"}');
     assert.equal((await reporter.report()).status, 'sent');
-    assert.equal((await new InventoryReporter(options(root, { siteUrl: 'https://stage.example.com' })).report()).status, 'sent');
+    assert.equal((await new InventoryReporter(options(root, { environment: 'development' })).report()).status, 'sent');
+    assert.equal((await new InventoryReporter(options(root, { environment: 'prod' })).report()).status, 'not_due');
+    assert.equal((await new InventoryReporter(options(root, { environment: 'preview' })).report()).status, 'not_due');
     assert.equal(request.mock.callCount(), 3);
     assert.equal((await readdir(join(root, 'state'))).length, 2);
 });
@@ -167,14 +169,14 @@ test('missing, mismatched and unsupported metadata never send an empty snapshot'
     assert.equal((await new InventoryReporter(options(root)).report()).status, 'failed');
 });
 
-test('insecure endpoints, sensitive site URLs and public state directories are rejected', async (t) => {
+test('insecure endpoints, unknown environments and public state directories are rejected', async (t) => {
     const root = await fixture(t);
     t.mock.method(globalThis, 'fetch', () => assert.fail('Unexpected request'));
     for (const url of ['http://dockray.io', 'https://user:password@dockray.io', 'https://dockray.io/?secret=value']) {
         assert.equal((await new InventoryReporter(options(root, { url })).report()).status, 'invalid_configuration');
     }
-    for (const siteUrl of ['https://user:password@app.example.com', 'https://app.example.com/?secret=value', 'https://app.example.com/#secret']) {
-        assert.equal((await new InventoryReporter(options(root, { siteUrl })).report()).status, 'failed');
+    for (const environment of ['unknown', '', null, 'production\n']) {
+        assert.equal((await new InventoryReporter(options(root, { environment })).report()).status, 'failed');
     }
     await mkdir(join(root, 'public-state'), { mode: 0o755 });
     assert.equal((await new InventoryReporter(options(root, { stateDirectory: join(root, 'public-state') })).report()).status, 'failed');
@@ -200,7 +202,7 @@ test('client starts the opt-in schedule, exposes manual reporting and stops it o
     assert.equal((await disabled.reportInventory()).status, 'disabled');
     await disabled.close();
     const client = new DockRayClient({ token: 'project-token', privateKey: 'top-secret-key', inventoryEnabled: true,
-        inventorySiteUrl: 'https://app.example.com', inventoryProjectDirectory: root,
+        environment: 'production', inventoryProjectDirectory: root,
         inventoryStateDirectory: join(root, 'state'), inventoryExcludePackages: ['company-*'] });
     try {
         assert.equal(client.inventory.timer.hasRef(), false);
@@ -222,4 +224,32 @@ test('CLI is opt-in, accepts only documented flags and never logs credentials', 
     assert.equal(disabled.stdout.includes('TOP_SECRET'), false);
     const bad = spawnSync(process.execPath, [cli.pathname, '--unknown'], { encoding: 'utf8' });
     assert.equal(bad.status, 1);
+    const unknownEnvironment = spawnSync(process.execPath, [cli.pathname], { cwd: root, encoding: 'utf8',
+        env: { ...process.env, RAY_INVENTORY: 'true', RAY_TOKEN: 'test-project', RAY_PRIVATE_KEY: 'TOP_SECRET',
+            RAY_ENVIRONMENT: 'unknown', RAY_INVENTORY_SITE_URL: '', RAY_INVENTORY_STATE_DIR: join(root, 'cli-state') } });
+    assert.equal(unknownEnvironment.status, 1);
+    assert.match(unknownEnvironment.stdout, /failed/);
+    assert.equal(unknownEnvironment.stdout.includes('not_configured'), false);
+    assert.equal(unknownEnvironment.stdout.includes('TOP_SECRET'), false);
+});
+
+ test('inventory normalizes environments without a site URL and ignores obsolete URL options', async t => {
+    const root = await fixture(t);
+    for (const [environment, expected] of [['production', 'prod'], ['prod', 'prod'], ['dev', 'dev'],
+        ['development', 'dev'], ['preview', 'dev'], ['staging', 'dev'], ['test', 'dev'], ['local', 'dev']]) {
+        const payload = await collectInventory(options(root, { environment, siteUrl: 'https://secret:secret@obsolete.example' }));
+        assert.equal(payload.environment, expected);
+        assert.equal(Object.hasOwn(payload, 'site_url'), false);
+        assert.equal(JSON.stringify(payload).includes('obsolete.example'), false);
+    }
+    const previous = process.env.RAY_ENVIRONMENT;
+    process.env.RAY_ENVIRONMENT = 'development';
+    try {
+        const client = new DockRayClient({ inventoryEnabled: false });
+        assert.equal(client.environment, 'development');
+        assert.equal(client.inventory.options.environment, 'development');
+        await client.close();
+    } finally {
+        if (previous === undefined) delete process.env.RAY_ENVIRONMENT; else process.env.RAY_ENVIRONMENT = previous;
+    }
 });

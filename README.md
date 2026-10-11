@@ -210,7 +210,7 @@ const ray = new DockRayClient({
     token: process.env.RAY_TOKEN,
     privateKey: process.env.RAY_PRIVATE_KEY,
     inventoryEnabled: true,
-    inventorySiteUrl: 'https://app.example.com',
+    environment: process.env.RAY_ENVIRONMENT ?? 'production',
     // Optional: do not share internal package names.
     inventoryExcludePackages: ['@company/*'],
     // Optional: persistent, private storage outside the public document root.
@@ -233,6 +233,21 @@ const result = await ray.reportInventory({ force: true });
 Run one schedule per application, or use the shared private state directory
 on the same machine. Separate machines need scheduler coordination.
 
+### Inventory environment
+
+`environment` is shared with error reporting. If omitted, the Node client and
+CLI use `RAY_ENVIRONMENT`, then `NODE_ENV`, then `production`.
+`prod`/`production` map to `prod`; `dev`/`development`/`staging`/`preview`/`test`/`local`
+map to `dev`. Unknown values fail without sending a report. The custom
+InventoryReporter uses the same defaults; collectInventory defaults to production.
+Production and development have separate report state and package snapshots.
+Development requires a configured development environment in the DockRay project.
+
+Version 1.1.1 removes `inventorySiteUrl`, reporter `siteUrl` and
+`RAY_INVENTORY_SITE_URL`; remove these obsolete settings. Deploy the DockRay API
+with explicit inventory environment support before updating the SDK. Existing
+CMS/PHP integrations can continue sending their site URL.
+
 ### Cron alternative
 
 For short-lived processes, serverless jobs or an external scheduler, keep the
@@ -241,7 +256,7 @@ Supply variables through a secure process/cron environment:
 
 ```dotenv
 RAY_INVENTORY=true
-RAY_INVENTORY_SITE_URL=https://app.example.com
+RAY_ENVIRONMENT=production
 RAY_TOKEN=your-project-token
 RAY_PRIVATE_KEY=your-project-private-key
 # Optional comma-separated package name/glob exclusions
@@ -261,11 +276,11 @@ From the application root:
 
 The command does not load `.env` automatically. Keep secrets on the server,
 never in frontend code, command arguments or a public crontab. Both the client
-and command use the existing DockRay project token and private key. The site
-URL must match the project environment and is never inferred from a Host header.
+and command use the existing DockRay project token and private key. The existing `environment` option or `RAY_ENVIRONMENT` selects the project environment.
+No inventory site URL is configured or sent.
 
 A custom server-side scheduler can import `InventoryReporter` from
-`@dockcodes/dock-ray/inventory`, pass `enabled: true`, `siteUrl`, project credentials
+`@dockcodes/dock-ray/inventory`, pass `enabled: true`, `environment`, project credentials
 (`token`, `privateKey`), optional `projectDirectory`, `stateDirectory` and
 `excludePackages`, then call `await reporter.report({ force: false })`.
 It does not start a timer unless `reporter.start()` is called.
@@ -286,7 +301,7 @@ metadata are not covered. Missing, mismatched, malformed or oversized metadata
 fails without sending an empty or partial snapshot. There is a limit of 1000
 unique name/version pairs. Excluded packages cannot be checked for vulnerabilities.
 
-Only package names/versions, the configured site URL and Node/SDK versions leave
+Only package names/versions, the normalized environment and Node/SDK versions leave
 the application. The collector does not execute npm, installation scripts or
 package code, and does not read source files, `.env`, repository URLs or user data.
 DockRay matches the npm names against its npm advisories and displays the findings

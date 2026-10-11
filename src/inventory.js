@@ -39,17 +39,15 @@ function matches(name, pattern) {
     return new RegExp(`^${escaped}$`).test(name);
 }
 
-function siteUrl(value) {
-    if (typeof value !== 'string' || value.length > 2048 || /[\x00-\x20\x7f]/.test(value)) throw new Error('Invalid site URL.');
-    const parsed = new URL(value);
-    if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password
-        || parsed.search || parsed.hash || value.includes('?') || value.includes('#')) throw new Error('Invalid site URL.');
-    return value;
+function inventoryEnvironment(value) {
+    if (['prod', 'production'].includes(value)) return 'prod';
+    if (['dev', 'development', 'staging', 'preview', 'test', 'local'].includes(value)) return 'dev';
+    throw new Error('Unsupported inventory environment.');
 }
 
 /** Reads only npm lock metadata and installed package.json files, never scripts or application code. */
-export async function collectInventory({ projectDirectory = process.cwd(), siteUrl: url, excludePackages = [] } = {}) {
-    siteUrl(url);
+export async function collectInventory({ projectDirectory = process.cwd(), environment = 'production', excludePackages = [] } = {}) {
+    const resolvedEnvironment = inventoryEnvironment(environment);
     if (!Array.isArray(excludePackages) || excludePackages.length > 1000
         || excludePackages.some((item) => typeof item !== 'string' || item.length > 191)) throw new Error('Invalid exclusions.');
     const root = await realpath(projectDirectory);
@@ -99,7 +97,7 @@ export async function collectInventory({ projectDirectory = process.cwd(), siteU
     }
     return {
         schema: 1, platform: 'nodejs', platform_version: process.versions.node,
-        agent_version: SDK_VERSION, site_url: url,
+        agent_version: SDK_VERSION, environment: resolvedEnvironment,
         components: [...components.values()].sort((a, b) => a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0),
     };
 }
@@ -107,9 +105,9 @@ export async function collectInventory({ projectDirectory = process.cwd(), siteU
 /** Explicit opt-in; safe, bounded delivery with private state and a cross-process lock. */
 export class InventoryReporter {
     constructor({ enabled = false, token = '', privateKey = '', url = DEFAULT_URL,
-        siteUrl: site, projectDirectory = process.cwd(), stateDirectory,
+        environment = process.env.RAY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'production', projectDirectory = process.cwd(), stateDirectory,
         excludePackages = [], logger = console } = {}) {
-        this.options = { enabled, token, privateKey, url, siteUrl: site, projectDirectory, excludePackages };
+        this.options = { enabled, token, privateKey, url, environment, projectDirectory, excludePackages };
         this.stateDirectory = stateDirectory ?? join(tmpdir(), `dockray-node-inventory-${process.getuid?.() ?? 'user'}`);
         this.logger = logger;
         this.pending = null;
@@ -139,7 +137,7 @@ export class InventoryReporter {
     async send(force) {
         const options = this.options;
         if (options.enabled !== true) return { status: 'disabled' };
-        if (!options.token || !options.privateKey || !options.siteUrl) return { status: 'not_configured' };
+        if (!options.token || !options.privateKey) return { status: 'not_configured' };
         let release;
         let controller;
         let timer;
@@ -152,11 +150,11 @@ export class InventoryReporter {
                 || /[\x00-\x20\x7f]/.test(options.privateKey) || process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
                 return { status: 'invalid_configuration' };
             }
-            siteUrl(options.siteUrl);
+            const resolvedEnvironment = inventoryEnvironment(options.environment);
             await mkdir(this.stateDirectory, { recursive: true, mode: 0o700 });
             const dir = await lstat(this.stateDirectory);
             if (!dir.isDirectory() || dir.isSymbolicLink() || (dir.mode & 0o077)) throw new Error('State must be private.');
-            const identity = createHash('sha256').update(`${server.href}|${options.token}|${options.siteUrl}`).digest('hex');
+            const identity = createHash('sha256').update(`${server.href}|${options.token}|${resolvedEnvironment}`).digest('hex');
             const file = join(this.stateDirectory, `${identity}.json`);
             try {
                 release = await lockfile.lock(file, { realpath: false, retries: 0, stale: 120000, update: 15000,

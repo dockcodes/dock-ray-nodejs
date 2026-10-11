@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- Remove inventory site URL configuration; use the existing environment setting.
+- Separate inventory scheduling by project and normalized environment.
+
 ## 1.1.0 - 2026-10-11
 
 - Added opt-in production npm inventory and known-vulnerability reporting.

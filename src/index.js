@@ -19,10 +19,11 @@ export { nodeRuntime } from './runtime/node.js';
  */
 export class DockRayClient extends RayClient {
     constructor(options = {}) {
-        super({ runtime: nodeRuntime, ...options });
+        super({ runtime: nodeRuntime, ...options,
+            environment: options.environment ?? process.env.RAY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'production' });
         this.inventory = new InventoryReporter({
             enabled: options.inventoryEnabled ?? false,
-            siteUrl: options.inventorySiteUrl,
+            environment: this.environment,
             excludePackages: options.inventoryExcludePackages ?? [],
             projectDirectory: options.inventoryProjectDirectory ?? this.appRoot,
             stateDirectory: options.inventoryStateDirectory,
